@@ -1,0 +1,15 @@
+{
+  "name": "dap-ecommerce",
+  "version": "1.0.0",
+  "description": "An E-Commerce Website",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Paul Julian",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.13.4",
+    "morgan": "^1.7.0"
+  }
+}
