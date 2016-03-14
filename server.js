@@ -4,73 +4,67 @@
 
 const
   express = require('express'),
+  dapComm = require('./dap'),
   morgan = require('morgan'),
   mongoose = require('mongoose'),
   bodyParser = require('body-parser'),
-  config = require('./config'),
-  models = require('./models'),
   ejs = require('ejs'),
-  engine = require('ejs-mate');
-
-
-// Establish usable constants
-const
+  engine = require('ejs-mate'),
   dap = express(),
-  User = models.user;
+  session = require('express-session'),
+  cookieParser = require('cookie-parser'),
+  flash = require('express-flash'),
+  passport = require('passport'),
+  h = require('./dap/helper');
 
 
 
-
-// Set up db connection thru mongoose
-mongoose.connect(config.dbURI, function (err) {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log('Connected to the database');
-  }
-});
+// // Set up db connection thru mongoose
+// mongoose.connect(config.dbURI, function (err) {
+//   if (err) {
+//     console.log(err);
+//   } else {
+//     console.log('Connected to the database');
+//   }
+// });
 
 // Middleware
+dap.use(express.static(__dirname + '/public'));
 dap.use(morgan('dev'));
 dap.use(bodyParser.json());
 dap.use(bodyParser.urlencoded({
   extended: true
 }));
+dap.use(cookieParser());
+dap.use(dapComm.session);
+dap.use(passport.initialize());
+dap.use(passport.session());
+dap.use(function (req, res, next) {
+  res.locals.user = req.user;
+  next();
+});
+
+dap.use(function (req, res, next) {
+  res.locals.categories = h.allCategories();
+  next();
+});
+
+dap.use(flash());
+
 dap.engine('ejs', engine);
+// dap.set('views', __dirname + '/views');
 dap.set('view engine', 'ejs');
 
+let apiRoutes = require('./api/api');
 
 // Routes
-dap.get('/', function (req, res, next) {
-  res.render('main/home');
-});
-
-dap.get('/about', function (req, res, next) {
-  res.render('main/about');
-});
-
-
-dap.post('/create-user', function (req, res, next) {
-  let user = new User();
-
-  user.profile.name = req.body.name;
-  user.password = req.body.password;
-  user.email = req.body.email;
-  console.log('req.body: ', req.body);
-
-  user.save(function (err) {
-    if (err) {
-      return next(err);
-    }
-    res.send('Succesfully created new user');
-  });
-});
-
+dap.use('/', dapComm.router);
+dap.use('/api', apiRoutes);
 
 // Server
-dap.listen(3000, function (err) {
+dap.listen(dapComm.config.port, function (err) {
   if (err) {
     throw err;
   }
-  console.log('Server is Running on PORT: 3000');
+  console.log('Server is Running on PORT: %s ', dapComm.config.port);
 });

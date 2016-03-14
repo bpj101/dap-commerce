@@ -1,0 +1,22 @@
+{
+  "name": "dap-ecommerce",
+  "description": "An E-Commerce Website",
+  "main": "server.js",
+  "authors": [
+    "Paul Julian"
+  ],
+  "license": "ISC",
+  "moduleType": [],
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "public/components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "^3.3.6"
+  }
+}

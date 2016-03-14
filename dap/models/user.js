@@ -1,7 +1,9 @@
 'use strict';
 
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt-nodejs');
+const
+  mongoose = require('mongoose'),
+  bcrypt = require('bcrypt-nodejs'),
+  crypto = require('crypto');
 
 const Schema = mongoose.Schema;
 
@@ -21,15 +23,19 @@ const UserSchema = new Schema({
     pic: {
       type: String,
       default: ''
+    },
+    address: {
+      type: String,
+      default: ''
     }
   },
-  address: String,
   history: [{
     date: Date,
     paid: {
       type: Number,
       default: 0
-    }
+    },
+    // item: {type: Schema.Types.ObjectId, ref: ''}
   }]
 });
 
@@ -55,6 +61,17 @@ UserSchema.methods.comparePassword = function (password) {
   return bcrypt.compareSync(password, this.password);
 };
 
-// Export a usable model
+// Compare the password in db and the password submitted by User
+UserSchema.methods.gravatar = function (size) {
+  if (!this.size) {
+    size = 200;
+  }
+  if (!this.email) {
+    return 'http://gravatar.com/avatar/?s' + size + '&d=reto';
+  }
+  var md5 = crypto.createHash('md5').update(this.email).digest('hex');
+  return 'http://gravatar.com/avatar/' + md5 + '?s=' + size + '&d=retro';
+};
 
+// Export a usable model
 module.exports = mongoose.model('User', UserSchema);

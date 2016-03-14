@@ -1,5 +1,6 @@
 {
-  "host": "http://localhost:3000",
+  "host": "http://localhost",
+  "port": 3000,
   "dbURI": "mongodb://dap101:mongoLab101@ds019668.mlab.com:19668/dapcommerce",
   "sessionSecret": "dapcommerce"
 }

@@ -1,0 +1,22 @@
+<% layout('layout') -%>
+<div class="container main-content">
+  <div class="row">
+    <div class="col-sm-6 col-md-4">
+      <img src="<%= user.profile.pic %>" alt="" class="img-circle img-responsive img-center">
+      <br>
+      <p>Name: <%= user.profile.name%></p>
+      <p>Email: <%= user.email%></p>
+      
+      <% if (user.profile.address === "") {%>
+      <p>Address: <span style="color: #c0392b; font-weight: bold; ">Please update profile with your address.</span></p>
+
+      <% } else { %>
+
+      <p>Address: <%= user.profile.address%></p>
+
+      <% } %>
+
+      <a class="btn btn-primary btn-lg" href="/update-profile">Update Profile</a>
+    </div>
+  </div>
+</div>
