@@ -44,6 +44,8 @@ dap.use(function (req, res, next) {
   next();
 });
 
+dap.use(h.cartLength);
+
 dap.use(function (req, res, next) {
   res.locals.categories = h.allCategories();
   next();
@@ -55,11 +57,11 @@ dap.engine('ejs', engine);
 // dap.set('views', __dirname + '/views');
 dap.set('view engine', 'ejs');
 
-let apiRoutes = require('./api/api');
+// const apiRoutes = require('./api');
 
 // Routes
 dap.use('/', dapComm.router);
-dap.use('/api', apiRoutes);
+
 
 // Server
 dap.listen(dapComm.config.port, function (err) {

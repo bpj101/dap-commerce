@@ -4,19 +4,23 @@ const
   router = require('express').Router(),
   async = require('async'),
   faker = require('faker'),
-  Category = require('../dap/models/category'),
-  Product = require('../dap/models/product');
+  models = require('../dap/models');
 
-router.get('/:name', (req, res, next) => {
+router.get('/test', (req, res, next) => {
+  res.send('This is a test');
+});
+
+router.get('/:name', function (req, res, next) {
   async.waterfall([
 
     function (callback) {
-      Category.findOne({
+      models.Category.findOne({
         name: req.params.name
       }, function (err, category) {
         if (err) {
           return next(err);
         }
+        console.log(category);
         callback(null, category);
       });
     },
@@ -29,7 +33,7 @@ router.get('/:name', (req, res, next) => {
         product.price = faker.commerce.price();
         product.image = faker.image.image();
 
-        product.save()
+        product.save();
       }
     }
   ]);

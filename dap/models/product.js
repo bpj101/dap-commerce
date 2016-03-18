@@ -2,6 +2,7 @@
 
 const
   mongoose = require('mongoose'),
+  mongoosastic = require('mongoosastic'),
   bcrypt = require('bcrypt-nodejs'),
   crypto = require('crypto');
 
@@ -19,4 +20,11 @@ const ProductSchema = new Schema({
 });
 
 // Export a usable model
+
+ProductSchema.plugin(mongoosastic, {
+  hosts: [
+    'localhost:9200'
+  ]
+});
+
 module.exports = mongoose.model('Product', ProductSchema);
