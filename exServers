@@ -1,3 +1,13 @@
 elasticsearch
 
 nodemon
+
+
+Holder: (erace when done)
+
+req.logIn(user, (err) => {
+                    if (err) {
+                      return next(err);
+                    }
+                    res.redirect('/profile');
+                  });

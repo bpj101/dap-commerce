@@ -2,5 +2,11 @@
   "host": "http://localhost",
   "port": 3000,
   "dbURI": "mongodb://dap101:mongoLab101@ds019668.mlab.com:19668/dapcommerce",
-  "sessionSecret": "dapcommerce"
+  "sessionSecret": "dapcommerce",
+  "fb": {
+    "clientID": "1727411034201682",
+    "clientSecret": "b79a050d1c4f9088e519b21768545b59",
+    "callbackURL": "//localhost:3000/auth/facebook/callback",
+    "profileFields": ["id", "email", "displayName", "photos"]
+  }
 }

@@ -18,5 +18,25 @@
 
       <a class="btn btn-primary btn-lg" href="/update-profile">Update Profile</a>
     </div>
+    <div class="col-md-6">
+      <h2 class="text-center">History</h2>
+
+      <table class="table table-striped sticky-header">
+        <thead>
+          <tr>
+            <th>Item's Name</th>
+            <th class="text-right">Paid:</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (var i = 0; i < user.history.length; i++) { %>
+            <tr>
+              <td><%= user.history[i].item.name %></td>
+              <td class="text-right">$ <%= user.history[i].paid.toFixed(2) %></td>
+            </tr>
+          <% } %> 
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>

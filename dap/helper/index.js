@@ -8,7 +8,8 @@ const
   User = models.User,
   Category = models.Category,
   Product = models.Product,
-  Cart = models.Cart;
+  Cart = models.Cart,
+  stripe = require('stripe')('sk_test_FBfLuKZXURgAU4U6djoCuUVf');
 
 let
   categories = [];
@@ -155,6 +156,13 @@ let _registerRoutes = (routes, method) => {
   }
 };
 
+// Create Global Router Object
+let route = (routes) => {
+  _registerRoutes(routes);
+  return router;
+};
+
+
 let allCategories = () => {
   if (categories.length > 0) {
     return categories;
@@ -171,35 +179,51 @@ let allCategories = () => {
   }
 };
 
-// Create Global Router Object
-let route = (routes) => {
-  _registerRoutes(routes);
-  return router;
-};
 
 
-let userEmailExists = (user, callback) => {
-  console.log('Looking for User');
+let userExists = (user, callback) => {
+  console.log(user);
   User.findOne({
-    email: user.email
+    $or: [{
+      email: user._json.email
+    }, {
+      facebookId: user.id
+    }]
   }, function (err, foundUser) {
-    console.log('Checking if found user');
+    if (err) {
+      console.log(err);
+    }
+
     if (foundUser) {
       return callback(true, foundUser);
     } else {
-      console.log('You are working');
+      console.log('Here 1: User Not found');
       return callback(false);
     }
   });
 };
 
-let createNewUser = (newUser, done) => {
+let createNewUser = (newUser, fb_token, done) => {
+  console.log('Here 3: Creating User Not found');
+  console.log('newUser.name: ' + newUser.name);
   let user = new User();
+  if (newUser.displayName) {
+    user.profile.name = newUser.displayName;
+    user.email = newUser._json.email;
+    user.facebook = newUser.id;
+    user.profile.pic = newUser.photos[0].value;
+    user.tokens.push({
+      kind: 'facebook',
+      token: fb_token
+    });
+  } else {
+    user.profile.name = newUser.name;
+    user.email = newUser.email;
+    user.password = newUser.password || '';
+    user.profile.pic = user.gravatar();
+  }
 
-  user.profile.name = newUser.name;
-  user.email = newUser.email;
-  user.password = newUser.password;
-  user.profile.pic = user.gravatar();
+  console.log('new user befor save: ' + user);
   user.save((err, user) => {
     if (err) {
       console.log(err);
@@ -212,11 +236,11 @@ let createNewUser = (newUser, done) => {
 let createUserCart = (user, done) => {
   var cart = new Cart();
   cart.owner = user._id;
-  cart.save((err) => {
+  cart.save((err, cart) => {
     if (err) {
       return err;
     }
-    done(user);
+    done(cart);
   })
 }
 
@@ -234,6 +258,69 @@ let addNewCategory = (newCategoryName, done) => {
   });
 };
 
+let makePayment = (newCharge, done) => {
+
+  let stripeToken = newCharge.stripeToken;
+  let currentCharges = Math.round(newCharge.stripeMoney * 100);
+  console.log(currentCharges);
+  stripe.customers.create({
+    source: stripeToken
+  }).then(function (customer) {
+    return stripe.charges.create({
+      amount: currentCharges,
+      currency: 'usd',
+      customer: customer.id
+    });
+  });
+  done();
+};
+
+let cleanCart = (chargedUser, done) => {
+  async.waterfall([
+
+    function (callback) {
+      Cart.findOne({
+        owner: chargedUser._id
+      }, function (err, cart) {
+        callback(err, cart);
+      });
+    },
+    function (cart, callback) {
+      User.findOne({
+        _id: chargedUser._id
+      }, function (err, user) {
+        if (user) {
+          for (var i = 0; i < cart.items.length; i++) {
+            user.history.push({
+              item: cart.items[i].item,
+              paid: cart.items[i].price
+            });
+          }
+
+          user.save(function (err, user) {
+            if (err) return next(err);
+            callback(err, user);
+          });
+        }
+      });
+    },
+    function (user) {
+      Cart.update({
+        owner: user._id
+      }, {
+        $set: {
+          items: [],
+          total: 0
+        }
+      }, function (err, updated) {
+        if (updated) {
+          done(updated);
+        }
+      });
+    }
+  ]);
+};
+
 let findById = (id) => {
   return new Promise((resolve, reject) => {
     User.findById(id, (error, user) => {
@@ -246,7 +333,22 @@ let findById = (id) => {
   });
 };
 
+let findUser = (user, done) => {
+  User
+    .findOne({
+      _id: user._id
+    })
+    .populate('history.item')
+    .exec((err, foundUser) => {
+      if (err) {
+        return err;
+      }
+      done(null, foundUser);
+    });
+};
+
 let findByEmail = (email) => {
+  console.log('finding Email');
   return new Promise((resolve, reject) => {
     User.findOne({
       email: email
@@ -301,7 +403,7 @@ let addProductToCart = (req, done) => {
       return err;
     } else {
       cart.items.push({
-        item: req.params.productId,
+        item: req.body.productId,
         price: parseFloat(req.body.priceValue),
         quantity: parseInt(req.body.quantity)
       });
@@ -312,9 +414,44 @@ let addProductToCart = (req, done) => {
         if (err) {
           return err;
         }
+        done();
       });
     }
   });
+};
+
+let removeProductFromCart = (req, done) => {
+  Cart
+    .findOne({
+      owner: req.user._id
+    }, (err, foundCart) => {
+      if (err) {
+        return err;
+      }
+      foundCart.items.pull(String(req.body.item));
+
+      foundCart.total = (foundCart.total - parseFloat(req.body.price)).toFixed(2);
+      foundCart.save((err, savedCart) => {
+        if (err) {
+          return err;
+        }
+        done(null, savedCart);
+      });
+    });
+};
+
+let getUserCart = (user, done) => {
+  Cart
+    .findOne({
+      owner: user._id
+    })
+    .populate('items.item')
+    .exec((err, foundCart) => {
+      if (err) {
+        return err;
+      }
+      done(null, foundCart);
+    });
 };
 
 let updateUserProfile = (id, updateUser) => {
@@ -339,9 +476,10 @@ let updateUserProfile = (id, updateUser) => {
 
 module.exports = {
   route: route,
-  userEmailExists: userEmailExists,
+  userExists: userExists,
   createNewUser: createNewUser,
   findById: findById,
+  findUser: findUser,
   findByEmail: findByEmail,
   isAuthenticated: isAuthenticated,
   updateUserProfile: updateUserProfile,
@@ -356,5 +494,9 @@ module.exports = {
   apiSearch: apiSearch,
   createUserCart: createUserCart,
   cartLength: cartLength,
-  addProductToCart: addProductToCart
+  addProductToCart: addProductToCart,
+  getUserCart: getUserCart,
+  removeProductFromCart: removeProductFromCart,
+  makePayment: makePayment,
+  cleanCart: cleanCart
 };

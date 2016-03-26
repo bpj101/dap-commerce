@@ -8,7 +8,7 @@
       <h3><%= product.name%></h3>
       <h1><%= product.price%></h1>
 
-      <form>
+      <form method="post">
         <div class="btn-group" role="group" aria-label="...">
           <input id="quantity" type="hidden" name="quantity" value="1"></input>
           <button class="btn btn-default" id="minus" type="button">-</button>
@@ -20,14 +20,15 @@
           <input id="priceHidden" type="hidden" name="priceHidden" value="<%= product.price %>"></input>
           
           <input type="text" name="item" class="form-control" value="<%= product.name %>"></input>
-          <input type="text" name="priceValue" class="form-control" value="<%= product.price %>"></input>
+          <input type="text" name="priceValue" id="priceValue" class="form-control" value="<%= product.price %>"></input>
         </div>
 
         <% if (user) {%>
 
-        <button class="btn btn-primary bth-lg">Add to Cart</button>    
+        <button type="submit"  class="btn btn-primary bth-lg">Add to Cart</button>    
 
         <% } else { %>
+
         <a href="/signup" class="btn btn-warning btn-lg">Signup to begin Buying</a>
 
         <% } %>

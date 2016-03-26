@@ -35,16 +35,22 @@ module.exports = () => {
           message: req.flash('loginMessage')
         });
       },
+      '/auth/facebook': passport.authenticate('facebook', {
+        scope: 'email'
+      }),
+      '/auth/facebook/callback': passport.authenticate('facebook', {
+        successRedirect: '/profile',
+        failureRedirect: '/login'
+      }),
       '/profile': [h.isAuthenticated, (req, res, next) => {
-        h.findById(req.user.id)
-          .then((user) => {
-            res.render('accounts/profile', {
-              user: user,
-            });
-          })
-          .catch((err) => {
+        h.findUser(req.user, (err, user) => {
+          if (err) {
             next(err);
+          }
+          res.render('accounts/profile', {
+            user: user,
           });
+        });
       }],
       '/update-profile': (req, res, next) => {
         res.render('accounts/update-profile', {
@@ -80,6 +86,18 @@ module.exports = () => {
           });
         });
       },
+      '/cart': (req, res, next) => {
+        h.getUserCart(req.user, (err, cart) => {
+          if (err) {
+            next(err);
+          }
+          res.render('main/cart', {
+            user: req.user,
+            foundCart: cart,
+            message: req.flash('removed')
+          });
+        });
+      },
       '/search': (req, res, next) => {
         if (req.query.q) {
           h.productSearch(req.query.q, (data) => {
@@ -94,7 +112,7 @@ module.exports = () => {
         '/signup': (req, res, next) => {
           // Check if User's email exists
           let newUser = req.body;
-          h.userEmailExists(newUser, (userExists) => {
+          h.userExists(newUser, (userExists) => {
             if (userExists) {
               // If User exists, send message user exist
               req.flash('errors', 'A User with that email already exists');
@@ -103,9 +121,9 @@ module.exports = () => {
               // res.redirectToRoute('accounts/signup');
             } else {
               // if User does not exist, save new User
-              h.createNewUser(newUser, (user) => {
+              h.createNewUser(newUser, '', (user) => {
                 console.log('New User is created');
-                h.createUserCart(user, (user) => {
+                h.createUserCart(user, (cart) => {
                   req.logIn(user, (err) => {
                     if (err) {
                       return next(err);
@@ -131,8 +149,17 @@ module.exports = () => {
               res.redirect('/update-profile');
             });
         },
-        '/product/:productId': (req, res, next) =>{
+        '/product/:productId': (req, res, next) => {
           h.addProductToCart(req, () => {
+            res.redirect('/cart');
+          });
+        },
+        '/remove': (req, res, next) => {
+          h.removeProductFromCart(req, (err, foundCart) => {
+            if (err) {
+              next(err);
+            }
+            req.flash('removed', 'Product removed from cart');
             res.redirect('/cart');
           });
         },
@@ -141,6 +168,15 @@ module.exports = () => {
             console.log('New Category is created');
             req.flash('success', 'Category: ' + req.body.name + ' is successfully added.');
             res.redirect('/admin/add-category');
+          });
+        },
+        '/payment': (req, res, next) => {
+          h.makePayment(req.body, () => {
+            h.cleanCart(req.user, (updated) => {
+              if (updated) {
+                res.redirect('/profile');
+              }
+            });
           });
         },
         '/search': (req, res, next) => {

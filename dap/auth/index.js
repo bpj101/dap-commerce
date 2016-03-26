@@ -5,7 +5,9 @@ const
   MongoStore = require('connect-mongo')(session),
   passport = require('passport'),
   h = require('../helper'),
-  LocalStrategy = require('passport-local').Strategy;
+  LocalStrategy = require('passport-local').Strategy,
+  FacebookStrategy = require('passport-facebook').Strategy,
+  secret = require('../config');
 
 
 // serialize
@@ -48,6 +50,20 @@ passport.use('local-login', new LocalStrategy({
     .catch((err) => {
       if (err) return done(err);
     });
+}));
+
+passport.use(new FacebookStrategy(secret.fb, function (token, refreshToken, profile, done) {
+  h.userExists(profile, (exist, user) => {
+    if (exist) {
+      done(null, user);
+    } else {
+      h.createNewUser(profile, token, (newUser) => {
+        h.createUserCart(newUser, (cart) => {
+          done(null, newUser);
+        });
+      });
+    }
+  });
 }));
 
 
